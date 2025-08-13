@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quiz OIIQ – HTML (correction par question + cas + images)</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#111827; --muted:#94a3b8; --text:#e5e7eb;
+    --accent:#22d3ee; --accent2:#a78bfa; --ok:#22c55e; --bad:#ef4444;
+  }
+  html,body{margin:0;height:100%;background:linear-gradient(180deg,#0b1220,#0f172a 40%);color:var(--text);
+    font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial}
+  .container{max-width:1000px;margin:0 auto;padding:28px 16px 80px}
+  header{display:grid;gap:10px;margin-bottom:18px}
+  h1{font-size:clamp(24px,3.3vw,36px);margin:0;font-weight:900}
+  .lead{color:var(--muted)}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 4px}
+  button,input[type="file"]::file-selector-button{font:600 14px/1 system-ui;border:0;border-radius:10px;padding:10px 14px;
+    background:linear-gradient(90deg,#0ea5e9,#8b5cf6);color:white;cursor:pointer}
+  button.secondary{background:#1f2937}
+  button.ghost{background:transparent;outline:1px solid #334155;color:var(--text)}
+  button[disabled]{opacity:.5;cursor:not-allowed}
+  .bar{height:10px;background:#1f2937;border-radius:999px;overflow:hidden;margin-top:8px}
+  .bar>div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s ease}
+  .grid{display:grid;gap:14px}
+  .card{background:rgba(17,24,39,.7);border:1px solid rgba(148,163,184,.15);border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:16px}
+  .case{padding:0}
+  .case .hero{display:grid;grid-template-columns:160px 1fr;gap:14px;align-items:center;
+    background:linear-gradient(180deg,rgba(34,211,238,.08),rgba(167,139,250,.08));border-bottom:1px solid rgba(148,163,184,.15);
+    border-top-left-radius:18px;border-top-right-radius:18px;padding:14px}
+  .case img{width:100%;height:120px;object-fit:cover;border-radius:12px;border:1px solid rgba(148,163,184,.25)}
+  .case .title{font-weight:800;font-size:18px}
+  .case .text{color:var(--muted)}
+  .q{padding:12px 16px}
+  .q h3{margin:0 0 8px;font-size:17px}
+  .opts{display:grid;gap:8px}
+  .opt{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid rgba(148,163,184,.18);border-radius:12px;background:rgba(2,6,23,.35)}
+  .opt input{margin-top:4px}
+  .feedback{margin-top:8px;padding:10px;border-radius:12px;display:none}
+  .feedback.ok{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35)}
+  .feedback.bad{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35)}
+  .footer{position:sticky;bottom:0;background:linear-gradient(180deg,transparent,rgba(2,6,23,.9));backdrop-filter:blur(4px);padding:10px 0;z-index:5}
+  .pill{display:inline-block;padding:4px 10px;border-radius:999px;background:#0b1220;border:1px solid #223;color:var(--muted)}
+  .muted{color:var(--muted)}
+  label.toggle{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #334155;border-radius:999px}
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Quiz de préparation OIIQ – Cas cliniques & QCM</h1>
+      <p class="lead">Version autonome (un seul fichier). <span class="pill">Correction par question</span> + <span class="pill">score global</span>. Charge ton CSV ou utilise l’exemple.</p>
+      <div class="controls">
+        <input type="file" id="csv" accept=".csv" />
+        <button id="loadDemo">Charger l’exemple</button>
+        <label class="toggle"><input type="checkbox" id="instant" checked> Correction immédiate à chaque question</label>
+        <button id="grade" class="secondary" disabled>Corriger tout</button>
+        <button id="reset" class="ghost">Réinitialiser</button>
+        <button id="exportPDF" class="ghost">Imprimer / PDF</button>
+      </div>
+      <div class="bar card"><div id="progress"></div></div>
+    </header>
+
+    <div class="card" id="intro">
+      <h2 style="margin:0 0 6px">Bienvenue</h2>
+      <p class="muted">Ce quiz simule le format de l’examen OIIQ : mises en situation réalistes illustrées, questions au jugement clinique (toutes plausibles, 1 plus appropriée), feedback et score.</p>
+      <ul class="muted">
+        <li>Durée suggérée : 90–120 min</li>
+        <li>Colonnes CSV : <code>Domaine, Case ID, Case Titre, Case Texte, Image, Question, Choix 1..4, Bonne réponse, Points, Feedback (correct), Feedback (incorrect)</code></li>
+      </ul>
+    </div>
+
+    <div id="quiz" class="grid"></div>
+
+    <div class="footer">
+      <div class="container" style="padding-top:0">
+        <div class="controls">
+          <span id="score" class="muted"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const $ = (sel, el=document) => el.querySelector(sel);
+const $$ = (sel, el=document) => [...el.querySelectorAll(sel)];
+const shuffle = arr => arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+
+// CSV parser (support guillemets)
+function parseCSV(text){
+  const rows=[]; let row=[], val=''; let inQ=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i], n=text[i+1];
+    if (inQ){
+      if (c==='\"' && n==='\"'){ val+='\"'; i++; }
+      else if (c==='\"'){ inQ=false; }
+      else val+=c;
+    } else {
+      if (c==='\"'){ inQ=true; }
+      else if (c===','){ row.push(val.trim()); val=''; }
+      else if (c==='\\n'){ row.push(val.trim()); rows.push(row); row=[]; val=''; }
+      else if (c==='\\r'){}
+      else val+=c;
+    }
+  }
+  if (val.length||row.length){ row.push(val.trim()); rows.push(row); }
+  return rows;
+}
+
+function csvToModel(rows){
+  const head = rows[0].map(h=>h.trim());
+  const idx = n => head.indexOf(n);
+  const IDX = {
+    domaine: idx('Domaine'), caseId: idx('Case ID'), caseTitre: idx('Case Titre'), caseTexte: idx('Case Texte'),
+    img: idx('Image'),
+    q: idx('Question'), c1: idx('Choix 1'), c2: idx('Choix 2'), c3: idx('Choix 3'), c4: idx('Choix 4'),
+    good: idx('Bonne réponse'), points: idx('Points'),
+    fbGood: idx('Feedback (correct)'), fbBad: idx('Feedback (incorrect)')
+  };
+  ['domaine','q','c1','c2','c3','c4','good'].forEach(k=>{ if (IDX[k]===-1) throw new Error('Colonne manquante: '+k); });
+
+  const map = new Map();
+  for (let r=1;r<rows.length;r++){
+    const row=rows[r]; if (!row.length || !row[IDX.q]) continue;
+    const rec = {
+      domaine: row[IDX.domaine]||'',
+      caseId: IDX.caseId>-1 ? row[IDX.caseId] : '',
+      caseTitre: IDX.caseTitre>-1 ? row[IDX.caseTitre] : '',
+      caseTexte: IDX.caseTexte>-1 ? row[IDX.caseTexte] : '',
+      image: IDX.img>-1 ? row[IDX.img] : '',
+      q: row[IDX.q],
+      choices: [row[IDX.c1],row[IDX.c2],row[IDX.c3],row[IDX.c4]].filter(Boolean),
+      good: row[IDX.good],
+      points: Number((IDX.points>-1? row[IDX.points]:1) || 1),
+      fbGood: (IDX.fbGood>-1? row[IDX.fbGood]: '') || 'Bon raisonnement clinique.',
+      fbBad: (IDX.fbBad>-1? row[IDX.fbBad]: '') || 'Revoir le raisonnement clinique.',
+    };
+    const key = rec.caseId ? rec.caseId : `__standalone__${rec.domaine}`;
+    if (!map.has(key)) map.set(key,{caseId:rec.caseId,titre:rec.caseTitre,texte:rec.caseTexte,image:rec.image,domaine:rec.domaine,qs:[]});
+    map.get(key).qs.push(rec);
+  }
+  // Mélanger les options
+  const sections=[];
+  for (const s of map.values()){
+    s.qs.forEach(q=>{ q.choices = shuffle(q.choices); });
+    sections.push(s);
+  }
+  return sections;
+}
+
+const quizEl = $('#quiz');
+let MODEL = [];
+let ANSWERS = {}; // qId -> selected
+let SCORES = {};  // qId -> 1/0
+let gradedAll=false;
+
+function render(){
+  quizEl.innerHTML='';
+  let count=0;
+  MODEL.forEach((sect, si)=>{
+    const card = document.createElement('section');
+    card.className='card case';
+
+    if (sect.caseId){
+      const hero=document.createElement('div');
+      hero.className='hero';
+      const img=document.createElement('img');
+      img.alt='Mise en situation';
+      img.src=sect.image || 'data:image/svg+xml;charset=utf8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><rect width="100%" height="100%" fill="#131a2a"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="18">Mise en situation</text></svg>`);
+      const meta=document.createElement('div');
+      const ttl=document.createElement('div'); ttl.className='title'; ttl.textContent = sect.titre || 'Mise en situation';
+      const txt=document.createElement('div'); txt.className='text'; txt.textContent = sect.texte || '';
+      meta.append(ttl,txt); hero.append(img,meta); card.append(hero);
+    }
+
+    sect.qs.forEach((q, qi)=>{
+      const id=`s${si}q${qi}`; q.__id=id; count++;
+      const blk=document.createElement('div'); blk.className='q';
+      const h3=document.createElement('h3'); h3.textContent = `${count}. ${q.q}`;
+      const opts=document.createElement('div'); opts.className='opts';
+
+      q.choices.forEach((c,ci)=>{
+        const lab=document.createElement('label'); lab.className='opt';
+        const r=document.createElement('input'); r.type='radio'; r.name=id; r.value=c;
+        r.addEventListener('change',()=>{ ANSWERS[id]=r.value; if ($('#instant').checked) gradeOne(q); updateProgress(); saveState(); });
+        const t=document.createElement('div'); t.innerHTML = `<b>${String.fromCharCode(97+ci)})</b>&nbsp;${c}`;
+        lab.append(r,t); opts.append(lab);
+      });
+
+      const fb=document.createElement('div'); fb.className='feedback'; fb.id=`fb-${id}`;
+
+      blk.append(h3,opts,fb); card.append(blk);
+    });
+
+    quizEl.append(card);
+  });
+  updateProgress();
+}
+
+function gradeOne(q){
+  const id=q.__id;
+  const chosen = (ANSWERS[id]!==undefined)? ANSWERS[id] : null;
+  const fb = $(`#fb-${id}`);
+  if (!fb) return;
+  fb.style.display='block';
+  if (chosen===q.good){
+    SCORES[id]=q.points||1;
+    fb.className='feedback ok';
+    fb.innerHTML = `✅ Correct. <span class="muted">${q.fbGood||''}</span>`;
+  } else {
+    SCORES[id]=0;
+    fb.className='feedback bad';
+    fb.innerHTML = `❌ Réponse plus appropriée : <b>${q.good}</b><br><span class="muted">${q.fbBad||''}</span>`;
+  }
+  updateTotal();
+}
+
+function gradeAll(){
+  MODEL.forEach(sect=>sect.qs.forEach(q=>gradeOne(q)));
+  gradedAll=true; saveState();
+}
+
+function updateTotal(){
+  let score=0,total=0;
+  MODEL.forEach(sect=>sect.qs.forEach(q=>{ total += (q.points||1); if (SCORES[q.__id]) score += SCORES[q.__id]; }));
+  $('#score').textContent = `Score actuel : ${score} / ${total}`;
+}
+
+function updateProgress(){
+  const total = MODEL.reduce((a,s)=>a+s.qs.length,0);
+  const chosen = Object.keys(ANSWERS).length;
+  const pct = total? Math.round(chosen/total*100):0;
+  $('#progress').style.width = pct+'%';
+  $('#grade').disabled = (total===0);
+}
+
+function saveState(){
+  const st = {ANSWERS,SCORES,gradedAll,MODEL_RAW:MODEL.map(s=>({caseId:s.caseId,titre:s.titre,texte:s.texte,image:s.image,domaine:s.domaine,qs:s.qs}))};
+  try{ localStorage.setItem('oiiq-html-state', JSON.stringify(st)); }catch(e){}
+}
+function restoreState(){
+  try{
+    const raw = localStorage.getItem('oiiq-html-state'); if (!raw) return;
+    const st = JSON.parse(raw);
+    if (st.MODEL_RAW){ MODEL = st.MODEL_RAW; render(); }
+    if (st.ANSWERS){ ANSWERS = st.ANSWERS; for (const [k,v] of Object.entries(ANSWERS)){ const el = document.querySelector(`input[name="${k}"][value="${CSS.escape(v)}"]`); if (el) el.checked=true; } }
+    if (st.SCORES){ SCORES = st.SCORES; }
+    if (st.gradedAll){ gradeAll(); }
+    updateTotal(); updateProgress();
+  }catch(e){}
+}
+
+// Demo minimal intégrée
+const DEMO = `Domaine,Case ID,Case Titre,Case Texte,Image,Question,Choix 1,Choix 2,Choix 3,Choix 4,Bonne réponse,Points,Feedback (correct),Feedback (incorrect)
+Soins critiques & urgences,CAS-URG-01,Douleur thoracique – Suspicion SCA,"Homme 63 ans, douleur constrictive irradiant bras gauche, SpO2 93% AA.",,Première action la plus appropriée ?,Installer en semi-assise,Monitorer + O2 selon protocole,Donner un repas léger,Faire marcher,Monitorer + O2 selon protocole,1,Prioriser ABC/monitorage.,Risque vital ⇒ ABC d'abord.
+Maternité & pédiatrie,CAS-OB-02,Prééclampsie sévère – 36 SA,"Femme 36 SA, TA 168/108, céphalées, phosphènes, protéinurie +.",,Signe de toxicité au MgSO4 ?,Rotuliens abolis,Bradypnée,Tremblements fins,Hyperréflexie,Rotuliens abolis,1,Perte des ROT = toxicité.,Surveiller réflexes/FR; antidote calcium.
+Multi-domaines,,,(Hors cas),,ISRS : message clé ?,Effet en 48h,Plusieurs semaines; ne pas arrêter brusquement,Crée dépendance,Éviter toute activité,Plusieurs semaines; ne pas arrêter brusquement,1,Bon counseling d’adhésion.,Prévenir sevrage.
+Pharmacologie & calculs,,,(Hors cas),,Calcul (pompe IV): 500 mL sur 4 h. Débit ?,100,125,250,62,125,1,Débit = 500/4.,Revoir la formule débit.`;
+
+// UI wiring
+$('#loadDemo').addEventListener('click',()=>{ try{ MODEL = csvToModel(parseCSV(DEMO)); ANSWERS={}; SCORES={}; gradedAll=false; render(); saveState(); }catch(e){ alert('Erreur: '+e.message);} });
+$('#csv').addEventListener('change', async (e)=>{
+  const file=e.target.files?.[0]; if(!file) return;
+  const text=await file.text();
+  try{ MODEL = csvToModel(parseCSV(text)); ANSWERS={}; SCORES={}; gradedAll=false; render(); saveState(); }
+  catch(err){ alert('Erreur CSV: '+err.message); }
+});
+$('#grade').addEventListener('click', gradeAll);
+$('#reset').addEventListener('click',()=>{ localStorage.removeItem('oiiq-html-state'); ANSWERS={}; SCORES={}; gradedAll=false; render(); updateTotal(); updateProgress(); });
+$('#exportPDF').addEventListener('click',()=>window.print());
+
+// Auto-load demo on first visit
+if (!localStorage.getItem('oiiq-html-state')) { $('#loadDemo').click(); }
+else { restoreState(); }
+</script>
+</body>
+</html>
