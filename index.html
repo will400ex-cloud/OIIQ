@@ -242,8 +242,35 @@
 <body>
     <div class="container">
         <div class="header panel">
-            <h1>📋 Questionnaire OIIQ</h1>
-            <p>Préparation à l'examen professionnel d'infirmière</p>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h1>📋 Questionnaire OIIQ</h1>
+                <p style="font-size: 1.3em; color: #667eea; font-weight: 600;">Préparation à l'examen professionnel d'infirmière</p>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 25px; border-radius: 15px; margin-top: 25px; border-left: 5px solid #667eea;">
+                <h3 style="color: #2c3e50; margin-bottom: 15px;">🎯 À propos de ce questionnaire</h3>
+                <p style="color: #495057; line-height: 1.7; margin-bottom: 15px;">
+                    Cet outil interactif a été conçu pour vous aider à préparer efficacement l'examen professionnel de l'Ordre des infirmières et infirmiers du Québec (OIIQ). 
+                    Il vous permet de tester vos connaissances dans différents domaines des soins infirmiers à travers des questions à choix multiples.
+                </p>
+                
+                <h4 style="color: #2c3e50; margin: 20px 0 10px 0;">🔧 Comment utiliser ce questionnaire :</h4>
+                <ul style="color: #495057; line-height: 1.6; margin-left: 20px;">
+                    <li><strong>Chargement :</strong> Cliquez sur "Charger le questionnaire" pour lancer vos questions personnalisées</li>
+                    <li><strong>Filtrage :</strong> Sélectionnez un thème spécifique ou gardez "Tous les thèmes" pour un test complet</li>
+                    <li><strong>Options :</strong> Choisissez entre correction instantanée (feedback immédiat) ou correction finale</li>
+                    <li><strong>Mélange :</strong> Activez le mélange des questions et/ou des réponses pour un entraînement plus varié</li>
+                    <li><strong>Navigation :</strong> Utilisez les boutons ou les touches du clavier (flèches, 1-4/A-D) pour naviguer</li>
+                    <li><strong>Résultats :</strong> Obtenez un score détaillé et une analyse par thème à la fin</li>
+                </ul>
+                
+                <div style="background: #e7f3ff; padding: 15px; border-radius: 10px; margin-top: 20px;">
+                    <p style="color: #0066cc; font-weight: 600; margin: 0;">
+                        💡 <strong>Conseil :</strong> Pour une préparation optimale, alternez entre les modes de correction instantanée (pour apprendre) 
+                        et finale (pour simuler les conditions d'examen réelles).
+                    </p>
+                </div>
+            </div>
         </div>
 
         <!-- Configuration -->
@@ -252,13 +279,14 @@
             
             <div class="input-group">
                 <label for="csvUrl">URL du fichier CSV</label>
-                <input type="text" id="csvUrl" value="./questions_quiz.csv">
+                <input type="text" id="csvUrl" value="./Questions_Septembre_2025.csv">
             </div>
             
             <div class="info-box">
                 <strong>✅ Configuration GitHub Pages</strong><br>
                 Le fichier CSV sera chargé automatiquement depuis votre repository.<br>
-                URL du site : <code>https://will400ex-cloud.github.io/OIIQ/</code>
+                URL du site : <code>https://will400ex-cloud.github.io/OIIQ/</code><br>
+                <small>Fichier attendu : <code>Questions_Septembre_2025.csv</code></small>
             </div>
 
             <div class="options-grid">
@@ -296,7 +324,6 @@
 
             <div style="text-align: center;">
                 <button class="btn" onclick="initializeQuizFromSetup()">Charger le questionnaire</button>
-                <button class="btn btn-secondary" onclick="loadExample()">Exemple de test</button>
             </div>
         </div>
 
@@ -342,45 +369,8 @@
         let correctionMode = 'instant';
         let questionResults = [];
 
-        // Données d'exemple
-        const exampleQuestions = [
-            {
-                id: 1,
-                theme: "Pharmacologie",
-                question: "Quelle est la voie d'administration la plus rapide pour un médicament en situation d'urgence?",
-                option_a: "Orale",
-                option_b: "Intraveineuse", 
-                option_c: "Intramusculaire",
-                option_d: "Sous-cutanée",
-                correct_answer: "B",
-                feedback_correct: "Correct! La voie intraveineuse permet une absorption immédiate.",
-                feedback_incorrect: "La voie intraveineuse est la plus rapide car le médicament va directement dans le sang."
-            },
-            {
-                id: 2,
-                theme: "Éthique",
-                question: "Un patient conscient refuse un traitement. L'infirmière doit:",
-                option_a: "Convaincre le patient",
-                option_b: "Respecter la décision",
-                option_c: "Appeler la famille", 
-                option_d: "Ignorer le refus",
-                correct_answer: "B",
-                feedback_correct: "Correct! Le principe d'autonomie du patient doit être respecté.",
-                feedback_incorrect: "Un patient conscient a le droit de refuser un traitement."
-            },
-            {
-                id: 3,
-                theme: "Pédiatrie",
-                question: "Chez un nourrisson, quel signe indique une déshydratation sévère?",
-                option_a: "Pleurs sans larmes",
-                option_b: "Bouche sèche",
-                option_c: "Fontanelle déprimée",
-                option_d: "Somnolence",
-                correct_answer: "C",
-                feedback_correct: "Correct! La fontanelle déprimée est un signe tardif mais spécifique.",
-                feedback_incorrect: "La fontanelle déprimée indique une perte significative de liquide."
-            }
-        ];
+        // Données d'exemple (gardées pour référence mais non utilisées)
+        const exampleQuestions = [];
 
         // Utilitaires
         function shuffleArray(array) {
@@ -438,29 +428,6 @@
                 });
                 console.log('Thèmes mis à jour:', themes);
             }
-        }
-
-        // Chargement d'exemple
-        function loadExample() {
-            console.log('Chargement de l\'exemple...');
-            questions = [...exampleQuestions];
-            
-            // Mise à jour des thèmes
-            const themes = [...new Set(questions.map(q => q.theme))];
-            updateThemeSelect(themes);
-            
-            // Afficher un message pour indiquer que les thèmes sont maintenant disponibles
-            const setupPanel = document.getElementById('setupPanel');
-            const infoBox = setupPanel.querySelector('.info-box');
-            if (infoBox) {
-                infoBox.innerHTML = `
-                    <strong>✅ Exemple chargé avec succès!</strong><br>
-                    ${questions.length} questions d'exemple sont maintenant disponibles.<br>
-                    Vous pouvez maintenant sélectionner un thème spécifique ou lancer le questionnaire complet.
-                `;
-            }
-            
-            console.log('Exemple prêt. Thèmes disponibles:', themes);
         }
 
         // Fonction pour charger et initialiser depuis le setup
