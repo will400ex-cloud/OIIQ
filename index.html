@@ -590,7 +590,7 @@
         let currentScenario = null;
         let questionResults = [];
         
-        // Fonctions utilitaires
+        // Fonctions utilitaires (définies en premier)
         function shuffleArray(array) {
             const shuffled = [...array];
             for (let i = shuffled.length - 1; i > 0; i--) {
@@ -598,6 +598,24 @@
                 [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
             }
             return shuffled;
+        }
+
+        function safeGetElement(id) {
+            const element = document.getElementById(id);
+            if (!element) {
+                console.error(`Élément avec l'ID '${id}' non trouvé`);
+                return null;
+            }
+            return element;
+        }
+
+        function safeSetContent(id, content) {
+            const element = safeGetElement(id);
+            if (element) {
+                element.innerHTML = content;
+                return true;
+            }
+            return false;
         }
 
         function parseCSV(csvText) {
@@ -633,6 +651,49 @@
             }
             
             return data;
+        }
+
+        function processParsedData(data) {
+            const processedQuestions = [];
+            const themes = new Set();
+            
+            data.forEach(row => {
+                if (row.question && row.question.trim()) {
+                    processedQuestions.push({
+                        id: row.id || processedQuestions.length + 1,
+                        theme: row.theme || 'Non catégorisé',
+                        scenario_id: row.scenario_id || null,
+                        scenario_text: row.scenario_text || '',
+                        question_number: row.question_number || 1,
+                        question: row.question,
+                        option_a: row.option_a || '',
+                        option_b: row.option_b || '',
+                        option_c: row.option_c || '',
+                        option_d: row.option_d || '',
+                        correct_answer: row.correct_answer || 'A',
+                        feedback_correct: row.feedback_correct || 'Bonne réponse !',
+                        feedback_incorrect: row.feedback_incorrect || 'Réponse incorrecte.'
+                    });
+                    themes.add(row.theme || 'Non catégorisé');
+                }
+            });
+            
+            // Mise à jour de la liste des thèmes avec vérification de sécurité
+            const themeSelect = safeGetElement('themeSelect');
+            if (themeSelect) {
+                themeSelect.innerHTML = '<option value="">Tous les thèmes</option>';
+                Array.from(themes).sort().forEach(theme => {
+                    const option = document.createElement('option');
+                    option.value = theme;
+                    option.textContent = theme;
+                    themeSelect.appendChild(option);
+                });
+                console.log('Thèmes chargés:', Array.from(themes));
+            } else {
+                console.warn('Élément themeSelect non trouvé, mais continuons...');
+            }
+            
+            return processedQuestions;
         }
 
         // Fonction pour tester GitHub Pages
