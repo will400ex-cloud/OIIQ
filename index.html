@@ -1002,53 +1002,81 @@
                 }
             });
             
-            // Mise à jour de la liste des thèmes
-            const themeSelect = document.getElementById('themeSelect');
-            themeSelect.innerHTML = '<option value="">Tous les thèmes</option>';
-            Array.from(themes).sort().forEach(theme => {
-                const option = document.createElement('option');
-                option.value = theme;
-                option.textContent = theme;
-                themeSelect.appendChild(option);
-            });
+            // Mise à jour de la liste des thèmes avec vérification de sécurité
+            const themeSelect = safeGetElement('themeSelect');
+            if (themeSelect) {
+                themeSelect.innerHTML = '<option value="">Tous les thèmes</option>';
+                Array.from(themes).sort().forEach(theme => {
+                    const option = document.createElement('option');
+                    option.value = theme;
+                    option.textContent = theme;
+                    themeSelect.appendChild(option);
+                });
+                console.log('Thèmes chargés:', Array.from(themes));
+            } else {
+                console.warn('Élément themeSelect non trouvé, mais continuons...');
+            }
             
             return processedQuestions;
         }
 
         function showQuizPanel() {
-            document.getElementById('setupPanel').classList.add('hidden');
-            document.getElementById('quizPanel').classList.remove('hidden');
+            const setupPanel = safeGetElement('setupPanel');
+            const quizPanel = safeGetElement('quizPanel');
+            
+            if (setupPanel) {
+                setupPanel.classList.add('hidden');
+            }
+            if (quizPanel) {
+                quizPanel.classList.remove('hidden');
+            }
         }
 
         function displayQuestion() {
             const question = questions[currentQuestionIndex];
             if (!question) return;
             
-            // Mise à jour du compteur et thème
-            document.getElementById('questionCounter').textContent = 
-                `Question ${currentQuestionIndex + 1} sur ${questions.length}`;
-            document.getElementById('currentTheme').textContent = question.theme;
+            // Mise à jour du compteur et thème avec vérifications
+            const questionCounter = safeGetElement('questionCounter');
+            if (questionCounter) {
+                questionCounter.textContent = `Question ${currentQuestionIndex + 1} sur ${questions.length}`;
+            }
+            
+            const currentTheme = safeGetElement('currentTheme');
+            if (currentTheme) {
+                currentTheme.textContent = question.theme;
+            }
             
             // Mise à jour de la barre de progression
             const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
-            document.getElementById('progressFill').style.width = progress + '%';
+            const progressFill = safeGetElement('progressFill');
+            if (progressFill) {
+                progressFill.style.width = progress + '%';
+            }
             
             // Gestion des scénarios
-            const scenarioBox = document.getElementById('scenarioBox');
+            const scenarioBox = safeGetElement('scenarioBox');
+            const scenarioText = safeGetElement('scenarioText');
+            
             if (question.scenario_id && question.scenario_text && currentScenario !== question.scenario_id) {
                 currentScenario = question.scenario_id;
-                scenarioBox.classList.remove('hidden');
-                document.getElementById('scenarioText').textContent = question.scenario_text;
+                if (scenarioBox) scenarioBox.classList.remove('hidden');
+                if (scenarioText) scenarioText.textContent = question.scenario_text;
             } else if (!question.scenario_id || !question.scenario_text) {
-                scenarioBox.classList.add('hidden');
+                if (scenarioBox) scenarioBox.classList.add('hidden');
                 currentScenario = null;
             }
             
             // Affichage de la question
-            document.getElementById('questionText').textContent = question.question;
+            const questionTextElement = safeGetElement('questionText');
+            if (questionTextElement) {
+                questionTextElement.textContent = question.question;
+            }
             
             // Options de réponse
-            const optionsContainer = document.getElementById('answerOptions');
+            const optionsContainer = safeGetElement('answerOptions');
+            if (!optionsContainer) return;
+            
             optionsContainer.innerHTML = '';
             
             const options = [
@@ -1091,14 +1119,19 @@
             });
             
             // Réinitialiser la zone de feedback
-            document.getElementById('feedbackArea').innerHTML = '';
+            const feedbackArea = safeGetElement('feedbackArea');
+            if (feedbackArea) {
+                feedbackArea.innerHTML = '';
+            }
             
             // Mise à jour des boutons de navigation
             updateNavigationButtons();
         }
 
         function showFeedback(isCorrect, question) {
-            const feedbackArea = document.getElementById('feedbackArea');
+            const feedbackArea = safeGetElement('feedbackArea');
+            if (!feedbackArea) return;
+            
             const feedbackClass = isCorrect ? 'correct' : 'incorrect';
             const feedbackTitle = isCorrect ? '✅ Correct !' : '❌ Incorrect';
             const feedbackText = isCorrect ? question.feedback_correct : question.feedback_incorrect;
@@ -1122,22 +1155,24 @@
         }
 
         function updateNavigationButtons() {
-            const prevBtn = document.getElementById('prevBtn');
-            const nextBtn = document.getElementById('nextBtn');
-            const finishBtn = document.getElementById('finishBtn');
+            const prevBtn = safeGetElement('prevBtn');
+            const nextBtn = safeGetElement('nextBtn');
+            const finishBtn = safeGetElement('finishBtn');
             
             // Bouton précédent
-            prevBtn.style.display = currentQuestionIndex > 0 ? 'block' : 'none';
+            if (prevBtn) {
+                prevBtn.style.display = currentQuestionIndex > 0 ? 'block' : 'none';
+            }
             
             // Bouton suivant/terminer
             const hasAnswer = userAnswers[currentQuestionIndex] !== null;
             
             if (currentQuestionIndex === questions.length - 1) {
-                nextBtn.style.display = 'none';
-                finishBtn.style.display = hasAnswer ? 'block' : 'none';
+                if (nextBtn) nextBtn.style.display = 'none';
+                if (finishBtn) finishBtn.style.display = hasAnswer ? 'block' : 'none';
             } else {
-                nextBtn.style.display = hasAnswer ? 'block' : 'none';
-                finishBtn.style.display = 'none';
+                if (nextBtn) nextBtn.style.display = hasAnswer ? 'block' : 'none';
+                if (finishBtn) finishBtn.style.display = 'none';
             }
         }
 
