@@ -295,7 +295,7 @@
             </div>
 
             <div style="text-align: center;">
-                <button class="btn" onclick="loadQuestions()">Charger le questionnaire</button>
+                <button class="btn" onclick="initializeQuizFromSetup()">Charger le questionnaire</button>
                 <button class="btn btn-secondary" onclick="loadExample()">Exemple de test</button>
             </div>
         </div>
@@ -430,12 +430,13 @@
             const themeSelect = document.getElementById('themeSelect');
             if (themeSelect) {
                 themeSelect.innerHTML = '<option value="">Tous les thèmes</option>';
-                themes.forEach(theme => {
+                themes.sort().forEach(theme => {
                     const option = document.createElement('option');
                     option.value = theme;
                     option.textContent = theme;
                     themeSelect.appendChild(option);
                 });
+                console.log('Thèmes mis à jour:', themes);
             }
         }
 
@@ -448,7 +449,23 @@
             const themes = [...new Set(questions.map(q => q.theme))];
             updateThemeSelect(themes);
             
-            initializeQuiz();
+            // Afficher un message pour indiquer que les thèmes sont maintenant disponibles
+            const setupPanel = document.getElementById('setupPanel');
+            const infoBox = setupPanel.querySelector('.info-box');
+            if (infoBox) {
+                infoBox.innerHTML = `
+                    <strong>✅ Exemple chargé avec succès!</strong><br>
+                    ${questions.length} questions d'exemple sont maintenant disponibles.<br>
+                    Vous pouvez maintenant sélectionner un thème spécifique ou lancer le questionnaire complet.
+                `;
+            }
+            
+            console.log('Exemple prêt. Thèmes disponibles:', themes);
+        }
+
+        // Fonction pour charger et initialiser depuis le setup
+        function initializeQuizFromSetup() {
+            loadQuestions();
         }
 
         // Chargement depuis CSV
@@ -502,8 +519,66 @@
                 const themes = [...new Set(questions.map(q => q.theme))];
                 updateThemeSelect(themes);
                 
+                // Mettre à jour l'interface pour indiquer le succès
+                document.getElementById('setupPanel').innerHTML = `
+                    <h2>Configuration du questionnaire</h2>
+                    
+                    <div class="input-group">
+                        <label for="csvUrl">URL du fichier CSV</label>
+                        <input type="text" id="csvUrl" value="${csvUrl}">
+                    </div>
+                    
+                    <div class="info-box">
+                        <strong>✅ Fichier CSV chargé avec succès!</strong><br>
+                        ${questions.length} questions ont été chargées.<br>
+                        Thèmes disponibles : ${themes.join(', ')}<br>
+                        Vous pouvez maintenant sélectionner vos options et lancer le questionnaire.
+                    </div>
+
+                    <div class="options-grid">
+                        <div class="option-card">
+                            <h4>🎯 Mode de correction</h4>
+                            <div class="checkbox-item">
+                                <input type="radio" id="instantMode" name="correctionMode" value="instant" checked>
+                                <label for="instantMode">Correction instantanée</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="radio" id="finalMode" name="correctionMode" value="final">
+                                <label for="finalMode">Correction à la fin</label>
+                            </div>
+                        </div>
+
+                        <div class="option-card">
+                            <h4>🔀 Ordre des questions</h4>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="shuffleQuestions">
+                                <label for="shuffleQuestions">Mélanger les questions</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="shuffleOptions">
+                                <label for="shuffleOptions">Mélanger les réponses</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="themeSelect">Sélectionner un thème</label>
+                        <select id="themeSelect">
+                            <option value="">Tous les thèmes</option>
+                        </select>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <button class="btn" onclick="initializeQuiz()">Lancer le questionnaire</button>
+                        <button class="btn btn-secondary" onclick="location.reload()">Recharger un autre fichier</button>
+                    </div>
+                `;
+                
+                // Re-populer le sélecteur de thème
+                updateThemeSelect(themes);
+                
                 console.log('Questions chargées:', questions.length);
-                initializeQuiz();
+                console.log('Thèmes disponibles:', themes);
                 
             } catch (error) {
                 console.error('Erreur de chargement:', error);
