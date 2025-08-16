@@ -480,25 +480,57 @@
                         </code>
                     </p>
                 </div>
-                
-                <!-- Boutons -->
-                <div style="margin-top: 15px;">
-                    <button type="button" onclick="loadQuestions()" class="btn" style="margin-right: 10px;">Charger le questionnaire</button>
-                    <button type="button" onclick="loadExampleCSV()" class="btn btn-secondary" style="padding: 8px 15px; font-size: 14px;">Exemple de test</button>
-                </div>
-                
-                <!-- Zone de texte comme fallback -->
-                <details style="margin-top: 20px;">
-                    <summary style="cursor: pointer; padding: 10px; background: #f8f9fa; border-radius: 5px;">
-                        💾 Fallback : Données CSV directes (cliquez pour ouvrir)
-                    </summary>
-                    <div style="margin-top: 10px;">
-                        <textarea id="csvData" placeholder="Données CSV de secours..." 
-                        style="width: 100%; height: 120px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-family: monospace; font-size: 12px; resize: vertical;"></textarea>
-                        <button type="button" onclick="loadFromTextArea()" class="btn" style="margin-top: 10px;">Charger depuis le texte</button>
-                    </div>
-                </details>
             </div>
+
+            <div class="options">
+                <div class="option-group">
+                    <h3>🎯 Mode de correction</h3>
+                    <div class="checkbox-group">
+                        <input type="radio" id="instantMode" name="correctionMode" value="instant" checked>
+                        <label for="instantMode">Correction instantanée</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="radio" id="finalMode" name="correctionMode" value="final">
+                        <label for="finalMode">Correction à la fin</label>
+                    </div>
+                </div>
+
+                <div class="option-group">
+                    <h3>🔀 Ordre des questions</h3>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="shuffleQuestions">
+                        <label for="shuffleQuestions">Mélanger les questions</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="shuffleOptions">
+                        <label for="shuffleOptions">Mélanger les choix de réponse</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="theme-selector">
+                <label for="themeSelect">Sélectionner un thème (optionnel - laissez "Tous" pour inclure toutes les questions)</label>
+                <select id="themeSelect">
+                    <option value="">Tous les thèmes</option>
+                </select>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn" onclick="loadQuestions()">Charger le questionnaire</button>
+                <button type="button" onclick="loadExampleCSV()" class="btn btn-secondary" style="padding: 8px 15px; font-size: 14px; margin-left: 10px;">Exemple de test</button>
+            </div>
+            
+            <!-- Zone de texte comme fallback -->
+            <details style="margin-top: 20px;">
+                <summary style="cursor: pointer; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                    💾 Fallback : Données CSV directes (cliquez pour ouvrir)
+                </summary>
+                <div style="margin-top: 10px;">
+                    <textarea id="csvData" placeholder="Données CSV de secours..." 
+                    style="width: 100%; height: 120px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-family: monospace; font-size: 12px; resize: vertical;"></textarea>
+                    <button type="button" onclick="loadFromTextArea()" class="btn" style="margin-top: 10px;">Charger depuis le texte</button>
+                </div>
+            </details>
 
             <div class="options">
                 <div class="option-group">
