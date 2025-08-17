@@ -172,6 +172,26 @@
             100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
         }
         
+        .scenario-box {
+            background: #e8f4fd;
+            border-left: 5px solid #007bff;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+        }
+        
+        .scenario-box h3 {
+            color: #007bff;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .scenario-text {
+            line-height: 1.6;
+            color: #495057;
+            font-weight: 500;
+        }
+        
         .question-box {
             background: white;
             border: 2px solid #e9ecef;
@@ -473,7 +493,7 @@
 
             <div id="scenarioBox" class="scenario-box hidden">
                 <h3>📋 Mise en situation</h3>
-                <div id="scenarioText"></div>
+                <div class="scenario-text" id="scenarioText"></div>
             </div>
 
             <div class="question-box">
@@ -507,6 +527,7 @@
         let userAnswers = [];
         let correctionMode = 'instant';
         let questionResults = [];
+        let currentScenario = null; // AJOUT: Variable manquante pour la gestion des scénarios
 
         // Utilitaires
         function shuffleArray(array) {
@@ -590,12 +611,13 @@
                 
                 const data = parseCSV(csvText);
                 console.log('Données parsées:', data.length, 'lignes');
+                console.log('Premier élément de données:', data[0]); // DEBUG: voir la structure
                 
                 if (data.length === 0) {
                     throw new Error('Aucune donnée trouvée');
                 }
 
-                // Traitement des données
+                // Traitement des données avec ajout des champs de scénario
                 questions = data.map((row, index) => ({
                     id: row.id || (index + 1),
                     theme: row.theme || 'Général',
@@ -606,8 +628,13 @@
                     option_d: row.option_d || '',
                     correct_answer: row.correct_answer || 'A',
                     feedback_correct: row.feedback_correct || 'Bonne réponse!',
-                    feedback_incorrect: row.feedback_incorrect || 'Réponse incorrecte.'
+                    feedback_incorrect: row.feedback_incorrect || 'Réponse incorrecte.',
+                    scenario_id: row.scenario_id || row.Scenario_ID || '', // MODIFICATION: gestion des noms de colonnes
+                    scenario_text: row.scenario_text || row.Scenario_Text || '' // MODIFICATION: gestion des noms de colonnes
                 })).filter(q => q.question && q.question.trim());
+
+                console.log('Questions traitées:', questions.length);
+                console.log('Première question avec scénario:', questions.find(q => q.scenario_text)); // DEBUG
 
                 if (questions.length === 0) {
                     throw new Error('Aucune question valide trouvée');
@@ -737,6 +764,7 @@
             questions = filteredQuestions;
             userAnswers = new Array(questions.length).fill(null);
             questionResults = new Array(questions.length).fill(null);
+            currentScenario = null; // RÉINITIALISATION: reset du scénario actuel
             
             showQuizPanel();
             displayQuestion();
@@ -751,29 +779,62 @@
             const question = questions[currentQuestionIndex];
             if (!question) return;
             
+            console.log('Affichage question:', currentQuestionIndex + 1);
+            console.log('Données question:', {
+                scenario_id: question.scenario_id,
+                scenario_text: question.scenario_text,
+                currentScenario: currentScenario
+            });
+            
             // Mise à jour des informations
             document.getElementById('questionCounter').textContent = 
                 `Question ${currentQuestionIndex + 1} sur ${questions.length}`;
             
-            // Gestion des scénarios
+            // Mise à jour du thème avec style spécial pour "hors sujet"
+            const currentTheme = document.getElementById('currentTheme');
+            if (currentTheme) {
+                currentTheme.textContent = question.theme;
+                
+                // Ajouter classe spéciale pour les thèmes "hors sujet"
+                if (question.theme.toLowerCase().includes('hors sujet')) {
+                    currentTheme.classList.add('hors-sujet');
+                } else {
+                    currentTheme.classList.remove('hors-sujet');
+                }
+            }
+            
+            // CORRECTION: Gestion améliorée des scénarios
             const scenarioBox = document.getElementById('scenarioBox');
             const scenarioText = document.getElementById('scenarioText');
             
-            if (question.scenario_id && question.scenario_text && question.scenario_text.trim()) {
-                // Nouvelle mise en situation avec texte
-                currentScenario = question.scenario_id;
-                if (scenarioBox) scenarioBox.classList.remove('hidden');
-                if (scenarioText) scenarioText.textContent = question.scenario_text;
-                console.log('Nouveau scénario affiché:', question.scenario_id);
-            } else if (question.scenario_id && currentScenario === question.scenario_id) {
-                // Même scénario, garder affiché (même si scenario_text est vide)
-                if (scenarioBox) scenarioBox.classList.remove('hidden');
-                console.log('Scénario maintenu:', question.scenario_id);
-            } else if (!question.scenario_id || !question.scenario_id.trim()) {
-                // Pas de scénario, cacher
+            // Vérifier si cette question a un scénario
+            if (question.scenario_id && question.scenario_id.trim()) {
+                console.log('Question avec scenario_id:', question.scenario_id);
+                
+                // Si c'est un nouveau scénario OU si on a du texte de scénario
+                if (currentScenario !== question.scenario_id || (question.scenario_text && question.scenario_text.trim())) {
+                    currentScenario = question.scenario_id;
+                    
+                    // Afficher le scénario
+                    if (scenarioBox) scenarioBox.classList.remove('hidden');
+                    if (scenarioText) {
+                        // Utiliser le texte s'il existe, sinon message par défaut
+                        const textToShow = question.scenario_text && question.scenario_text.trim() 
+                            ? question.scenario_text 
+                            : `Scénario ${question.scenario_id}`;
+                        scenarioText.textContent = textToShow;
+                    }
+                    console.log('Nouveau scénario affiché:', question.scenario_id);
+                } else {
+                    // Même scénario, garder affiché
+                    if (scenarioBox) scenarioBox.classList.remove('hidden');
+                    console.log('Scénario maintenu:', question.scenario_id);
+                }
+            } else {
+                // Pas de scénario pour cette question
                 if (scenarioBox) scenarioBox.classList.add('hidden');
                 currentScenario = null;
-                console.log('Scénario caché');
+                console.log('Scénario caché - pas de scenario_id');
             }
             
             // Barre de progression
