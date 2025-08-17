@@ -1,33 +1,4 @@
-// Mise à jour du thème avec style spécial pour "hors sujet"
-            const currentTheme = document.getElementById('currentTheme');
-            if (currentTheme) {
-                currentTheme.textContent = question.theme;
-                
-                // Ajouter classe spéciale pour les thèmes "hors sujet"
-                if (question.theme.toLowerCase().includes('hors sujet')) {
-                    currentTheme.classList.add('hors-sujet');
-                } else {
-                    currentTheme.classList.remove('hors-sujet');
-                }
-            }        .scenario-box {
-            background: #e8f4fd;
-            border-left: 5px solid #007bff;
-            padding: 20px;
-            margin-bottom: 25px;
-            border-radius: 10px;
-        }
-        
-        .scenario-box h3 {
-            color: #007bff;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-        
-        .scenario-text {
-            line-height: 1.6;
-            color: #495057;
-            font-weight: 500;
-        }<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
