@@ -1,4 +1,33 @@
-<!DOCTYPE html>
+// Mise à jour du thème avec style spécial pour "hors sujet"
+            const currentTheme = document.getElementById('currentTheme');
+            if (currentTheme) {
+                currentTheme.textContent = question.theme;
+                
+                // Ajouter classe spéciale pour les thèmes "hors sujet"
+                if (question.theme.toLowerCase().includes('hors sujet')) {
+                    currentTheme.classList.add('hors-sujet');
+                } else {
+                    currentTheme.classList.remove('hors-sujet');
+                }
+            }        .scenario-box {
+            background: #e8f4fd;
+            border-left: 5px solid #007bff;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+        }
+        
+        .scenario-box h3 {
+            color: #007bff;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .scenario-text {
+            line-height: 1.6;
+            color: #495057;
+            font-weight: 500;
+        }<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -471,6 +500,11 @@
                 <span class="theme-badge" id="currentTheme">Général</span>
             </div>
 
+            <div id="scenarioBox" class="scenario-box hidden">
+                <h3>📋 Mise en situation</h3>
+                <div id="scenarioText"></div>
+            </div>
+
             <div class="question-box">
                 <div class="question-title" id="questionText"></div>
                 <ul class="answer-options" id="answerOptions"></ul>
@@ -750,17 +784,25 @@
             document.getElementById('questionCounter').textContent = 
                 `Question ${currentQuestionIndex + 1} sur ${questions.length}`;
             
-            // Mise à jour du thème avec style spécial pour "hors sujet"
-            const currentTheme = document.getElementById('currentTheme');
-            if (currentTheme) {
-                currentTheme.textContent = question.theme;
-                
-                // Ajouter classe spéciale pour les thèmes "hors sujet"
-                if (question.theme.toLowerCase().includes('hors sujet')) {
-                    currentTheme.classList.add('hors-sujet');
-                } else {
-                    currentTheme.classList.remove('hors-sujet');
-                }
+            // Gestion des scénarios
+            const scenarioBox = document.getElementById('scenarioBox');
+            const scenarioText = document.getElementById('scenarioText');
+            
+            if (question.scenario_id && question.scenario_text && question.scenario_text.trim()) {
+                // Nouvelle mise en situation avec texte
+                currentScenario = question.scenario_id;
+                if (scenarioBox) scenarioBox.classList.remove('hidden');
+                if (scenarioText) scenarioText.textContent = question.scenario_text;
+                console.log('Nouveau scénario affiché:', question.scenario_id);
+            } else if (question.scenario_id && currentScenario === question.scenario_id) {
+                // Même scénario, garder affiché (même si scenario_text est vide)
+                if (scenarioBox) scenarioBox.classList.remove('hidden');
+                console.log('Scénario maintenu:', question.scenario_id);
+            } else if (!question.scenario_id || !question.scenario_id.trim()) {
+                // Pas de scénario, cacher
+                if (scenarioBox) scenarioBox.classList.add('hidden');
+                currentScenario = null;
+                console.log('Scénario caché');
             }
             
             // Barre de progression
