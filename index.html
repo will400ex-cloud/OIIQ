@@ -253,12 +253,40 @@
             font-weight: 500;
         }
         
+        /* MOBILE: Navigation par glissement */
         .question-box {
             background: white;
             border: 2px solid #e9ecef;
             border-radius: 15px;
             padding: 25px;
             margin-bottom: 25px;
+            /* Support du swipe */
+            touch-action: pan-y;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* MOBILE: Indicateur visuel de swipe */
+        .question-box::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #667eea, transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .question-box.swipe-hint::after {
+            opacity: 0.3;
+            animation: swipe-indicator 2s ease-in-out infinite;
+        }
+        
+        @keyframes swipe-indicator {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
         }
         
         .question-title {
@@ -411,26 +439,51 @@
                 font-size: 14px;
                 width: 100%;
                 max-width: 300px;
+                /* MOBILE: Espacement tactile amélioré */
+                margin: 8px 0;
+                min-height: 52px;
             }
             
             .question-info {
                 flex-direction: column;
                 gap: 10px;
                 text-align: center;
+                /* MOBILE: Zone tactile pour le thème */
+                padding: 20px 15px;
+            }
+            
+            .theme-badge {
+                /* MOBILE: Plus visible sur mobile */
+                padding: 8px 20px;
+                font-size: 15px;
+                min-height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
             
             .question-title {
                 font-size: 1.1em;
+                /* MOBILE: Espacement pour lecture facile */
+                line-height: 1.5;
+                margin-bottom: 25px;
             }
             
             .answer-option label {
-                padding: 12px 15px;
+                padding: 16px 20px;
                 font-size: 15px;
+                /* MOBILE: Zone tactile généreuse */
+                min-height: 60px;
+                margin-bottom: 4px;
             }
             
             .feedback {
-                padding: 15px;
-                margin-top: 15px;
+                padding: 18px;
+                margin-top: 20px;
+                /* MOBILE: Bordures plus douces */
+                border-radius: 12px;
+                font-size: 15px;
+                line-height: 1.6;
             }
             
             .input-group input, .input-group select {
@@ -463,11 +516,65 @@
             
             .question-box {
                 padding: 20px;
+                /* MOBILE: Meilleure utilisation de l'espace sur très petits écrans */
+                margin-bottom: 20px;
             }
             
             .btn {
-                padding: 10px 20px;
-                font-size: 13px;
+                padding: 14px 20px;
+                font-size: 15px;
+                /* MOBILE: Boutons plus accessibles sur petits écrans */
+                min-height: 56px;
+                margin: 6px 0;
+            }
+            
+            .answer-option label {
+                /* MOBILE: Zone tactile maximisée sur petits écrans */
+                padding: 18px 16px;
+                min-height: 64px;
+                font-size: 16px;
+            }
+            
+            .scenario-box {
+                /* MOBILE: Scénarios plus lisibles */
+                padding: 18px;
+                margin-bottom: 20px;
+                border-radius: 12px;
+            }
+            
+            .controls {
+                /* MOBILE: Contrôles optimisés pour pouces */
+                gap: 12px;
+                padding: 0 10px;
+            }
+        }
+        
+        /* MOBILE: Classes de feedback tactile */
+        .touch-feedback-next {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%, rgba(0,255,0,0.1) 100%);
+        }
+        
+        .touch-feedback-prev {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%, rgba(255,165,0,0.1) 100%);
+        }
+        
+        /* MOBILE: Amélioration de l'accessibilité tactile */
+        @media (hover: none) and (pointer: coarse) {
+            /* Styles spécifiques aux appareils tactiles */
+            .btn:hover {
+                transform: none;
+                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            }
+            
+            .answer-option label:hover {
+                border-color: #e9ecef;
+                background: #f8f9fa;
+            }
+            
+            /* Focus plus visible sur tactile */
+            .btn:focus, .answer-option input:focus + label {
+                outline: 3px solid #667eea;
+                outline-offset: 2px;
             }
         }
     </style>
@@ -618,6 +725,13 @@
         let correctionMode = 'instant';
         let questionResults = [];
         let currentScenario = null; // AJOUT: Variable manquante pour la gestion des scénarios
+        
+        // MOBILE: Variables pour la gestion du swipe
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        let isSwipeGesture = false;
 
         // Utilitaires
         function shuffleArray(array) {
@@ -863,6 +977,142 @@
         function showQuizPanel() {
             document.getElementById('setupPanel').classList.add('hidden');
             document.getElementById('quizPanel').classList.remove('hidden');
+            
+            // MOBILE: Initialiser les événements tactiles
+            initializeTouchEvents();
+        }
+        
+        // MOBILE: Gestion des événements tactiles pour la navigation
+        function initializeTouchEvents() {
+            const quizPanel = document.getElementById('quizPanel');
+            
+            if (quizPanel) {
+                // Supprimer les anciens événements pour éviter les doublons
+                quizPanel.removeEventListener('touchstart', handleTouchStart);
+                quizPanel.removeEventListener('touchmove', handleTouchMove);
+                quizPanel.removeEventListener('touchend', handleTouchEnd);
+                
+                // Ajouter les nouveaux événements
+                quizPanel.addEventListener('touchstart', handleTouchStart, { passive: false });
+                quizPanel.addEventListener('touchmove', handleTouchMove, { passive: false });
+                quizPanel.addEventListener('touchend', handleTouchEnd, { passive: false });
+                
+                console.log('🤚 Événements tactiles initialisés');
+            }
+        }
+        
+        // MOBILE: Détection du début du swipe
+        function handleTouchStart(event) {
+            const touch = event.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            isSwipeGesture = false;
+            
+            console.log('👆 Touch start:', touchStartX, touchStartY);
+        }
+        
+        // MOBILE: Suivi du mouvement de swipe
+        function handleTouchMove(event) {
+            if (!touchStartX || !touchStartY) return;
+            
+            const touch = event.touches[0];
+            touchEndX = touch.clientX;
+            touchEndY = touch.clientY;
+            
+            const deltaX = Math.abs(touchEndX - touchStartX);
+            const deltaY = Math.abs(touchEndY - touchStartY);
+            
+            // Détecter si c'est un swipe horizontal (plus strict)
+            if (deltaX > 20 && deltaX > deltaY * 1.5) {
+                isSwipeGesture = true;
+                
+                // Prévenir le scroll si c'est un swipe horizontal
+                event.preventDefault();
+                
+                // Ajouter un feedback visuel subtil
+                const questionBox = document.querySelector('.question-box');
+                if (questionBox && !questionBox.classList.contains('swipe-hint')) {
+                    questionBox.classList.add('swipe-hint');
+                    console.log('💫 Swipe détecté');
+                }
+            }
+        }
+        
+        // MOBILE: Traitement de la fin du swipe
+        function handleTouchEnd(event) {
+            console.log('👋 Touch end - isSwipe:', isSwipeGesture, 'startX:', touchStartX, 'endX:', touchEndX);
+            
+            if (!isSwipeGesture || !touchStartX || !touchEndX) {
+                resetTouchVariables();
+                return;
+            }
+            
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+            const minSwipeDistance = 80; // Distance minimum pour déclencher
+            
+            console.log('📏 Delta X:', deltaX, 'Delta Y:', deltaY);
+            
+            // Vérifier que c'est bien un swipe horizontal significatif
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+                
+                // Swipe vers la droite = question précédente
+                if (deltaX > 0 && currentQuestionIndex > 0) {
+                    console.log('⬅️ Swipe droite - Question précédente');
+                    addTouchFeedback('previous');
+                    setTimeout(() => previousQuestion(), 100);
+                }
+                // Swipe vers la gauche = question suivante (si répondue)
+                else if (deltaX < 0) {
+                    if (userAnswers[currentQuestionIndex] !== null) {
+                        console.log('➡️ Swipe gauche - Question suivante');
+                        addTouchFeedback('next');
+                        setTimeout(() => {
+                            if (currentQuestionIndex < questions.length - 1) {
+                                nextQuestion();
+                            } else {
+                                showResults();
+                            }
+                        }, 100);
+                    } else {
+                        console.log('🚫 Swipe gauche ignoré - Pas de réponse');
+                        // Feedback pour indiquer qu'il faut répondre
+                        const questionBox = document.querySelector('.question-box');
+                        if (questionBox) {
+                            questionBox.style.animation = 'shake 0.5s ease-in-out';
+                            setTimeout(() => {
+                                questionBox.style.animation = '';
+                            }, 500);
+                        }
+                    }
+                }
+            }
+            
+            resetTouchVariables();
+        }
+        
+        // MOBILE: Réinitialiser les variables de touch
+        function resetTouchVariables() {
+            touchStartX = 0;
+            touchStartY = 0;
+            touchEndX = 0;
+            touchEndY = 0;
+            isSwipeGesture = false;
+            
+            // Retirer le feedback visuel
+            const questionBox = document.querySelector('.question-box');
+            if (questionBox) {
+                questionBox.classList.remove('swipe-hint');
+            }
+        }
+        
+        // MOBILE: Feedback visuel pour les actions tactiles
+        function addTouchFeedback(action) {
+            const body = document.body;
+            const feedbackClass = action === 'next' ? 'touch-feedback-next' : 'touch-feedback-prev';
+            
+            body.classList.add(feedbackClass);
+            setTimeout(() => body.classList.remove(feedbackClass), 300);
         }
 
         function displayQuestion() {
