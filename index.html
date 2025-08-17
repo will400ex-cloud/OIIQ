@@ -1,4 +1,10 @@
-<!DOCTYPE html>
+<div class="input-group">
+                        <label for="startQuestion">Commencer à la question n° (optionnel)</label>
+                        <input type="number" id="startQuestion" min="1" placeholder="Ex: 25">
+                        <small style="color: #6c757d; font-size: 14px; margin-top: 5px; display: block;">
+                            💡 Utile pour reprendre là où vous vous êtes arrêté
+                        </small>
+                    </div><!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -447,6 +453,14 @@
                 </select>
             </div>
 
+            <div class="input-group">
+                <label for="startQuestion">Commencer à la question n° (optionnel)</label>
+                <input type="number" id="startQuestion" min="1" placeholder="Ex: 25 pour commencer à la question 25">
+                <small style="color: #6c757d; font-size: 14px; margin-top: 5px; display: block;">
+                    💡 Utile pour reprendre là où vous vous êtes arrêté lors de votre dernière session
+                </small>
+            </div>
+
             <div style="text-align: center;">
                 <button class="btn" onclick="loadQuestions()">Charger le questionnaire</button>
             </div>
@@ -471,6 +485,7 @@
 
             <div class="controls">
                 <button class="btn btn-secondary" id="prevBtn" onclick="previousQuestion()" style="display: none;">← Précédent</button>
+                <button class="btn" id="stopBtn" onclick="stopQuiz()" style="background: linear-gradient(45deg, #ffc107, #fd7e14); display: block;">🛑 Arrêter ici</button>
                 <button class="btn" id="nextBtn" onclick="nextQuestion()" style="display: none;">Suivant →</button>
                 <button class="btn" id="finishBtn" onclick="showResults()" style="display: none;">Terminer</button>
             </div>
@@ -683,6 +698,7 @@
             // Récupération des paramètres
             correctionMode = document.querySelector('input[name="correctionMode"]:checked')?.value || 'instant';
             const selectedTheme = document.getElementById('themeSelect')?.value || '';
+            const startQuestionNumber = parseInt(document.getElementById('startQuestion')?.value) || 1;
             
             // Filtrage par thème
             let filteredQuestions = questions;
@@ -700,10 +716,20 @@
                 return;
             }
             
+            // Vérifier si le numéro de départ est valide
+            if (startQuestionNumber > filteredQuestions.length) {
+                alert(`Le numéro de départ (${startQuestionNumber}) est supérieur au nombre total de questions (${filteredQuestions.length}). Le questionnaire commencera à la question 1.`);
+                currentQuestionIndex = 0;
+            } else if (startQuestionNumber > 1) {
+                currentQuestionIndex = startQuestionNumber - 1; // -1 car l'index commence à 0
+                console.log(`Démarrage à la question ${startQuestionNumber}`);
+            } else {
+                currentQuestionIndex = 0;
+            }
+            
             questions = filteredQuestions;
             userAnswers = new Array(questions.length).fill(null);
             questionResults = new Array(questions.length).fill(null);
-            currentQuestionIndex = 0;
             
             showQuizPanel();
             displayQuestion();
@@ -850,28 +876,41 @@
         }
 
         function showResults() {
-            // Calcul des résultats
+            // Calcul des résultats sur les questions réellement répondues
             let correctAnswers = 0;
+            let answeredQuestions = 0;
             
             questionResults.forEach((result, index) => {
-                if (correctionMode === 'final' && !result) {
-                    const question = questions[index];
-                    const userAnswer = userAnswers[index];
-                    const isCorrect = userAnswer === question.correct_answer;
+                // Ne compter que les questions qui ont été vues/répondues
+                if (userAnswers[index] !== null || result) {
+                    answeredQuestions++;
                     
-                    questionResults[index] = {
-                        question: question.question,
-                        userAnswer: userAnswer,
-                        correctAnswer: question.correct_answer,
-                        isCorrect: isCorrect,
-                        theme: question.theme
-                    };
+                    if (correctionMode === 'final' && !result) {
+                        const question = questions[index];
+                        const userAnswer = userAnswers[index];
+                        const isCorrect = userAnswer === question.correct_answer;
+                        
+                        questionResults[index] = {
+                            question: question.question,
+                            userAnswer: userAnswer,
+                            correctAnswer: question.correct_answer,
+                            isCorrect: isCorrect,
+                            theme: question.theme
+                        };
+                    }
+                    
+                    if (questionResults[index] && questionResults[index].isCorrect) {
+                        correctAnswers++;
+                    }
                 }
-                
-                if (questionResults[index].isCorrect) correctAnswers++;
             });
             
-            const percentage = Math.round((correctAnswers / questions.length) * 100);
+            // Si aucune question répondue, utiliser le nombre total comme base
+            if (answeredQuestions === 0) {
+                answeredQuestions = questions.length;
+            }
+            
+            const percentage = answeredQuestions > 0 ? Math.round((correctAnswers / answeredQuestions) * 100) : 0;
             
             // Affichage
             document.getElementById('quizPanel').classList.add('hidden');
@@ -883,11 +922,19 @@
             else if (percentage >= 70) grade = 'Bien';
             else if (percentage >= 60) grade = 'Passable';
             
+            // Message différent si arrêt en cours de route
+            const isPartialQuiz = answeredQuestions < questions.length;
+            const partialMessage = isPartialQuiz ? 
+                `<p style="color: #ffc107; font-weight: 600; margin-bottom: 15px;">
+                    📊 Session partielle : ${answeredQuestions} questions sur ${questions.length} disponibles
+                </p>` : '';
+            
             document.getElementById('resultsContent').innerHTML = `
+                ${partialMessage}
                 <div style="text-align: center; margin-bottom: 30px;">
                     <div style="display: inline-block; padding: 30px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border-radius: 20px; margin: 10px;">
                         <h3 style="font-size: 3em; margin-bottom: 10px;">${percentage}%</h3>
-                        <p>Score final</p>
+                        <p>Score${isPartialQuiz ? ' partiel' : ''}</p>
                     </div>
                     <div style="display: inline-block; padding: 30px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border-radius: 20px; margin: 10px;">
                         <h3 style="font-size: 2em; margin-bottom: 10px;">${grade}</h3>
@@ -895,9 +942,33 @@
                     </div>
                 </div>
                 <div style="text-align: center;">
-                    <p style="font-size: 1.2em;"><strong>${correctAnswers}</strong> bonnes réponses sur <strong>${questions.length}</strong> questions</p>
+                    <p style="font-size: 1.2em;">
+                        <strong>${correctAnswers}</strong> bonnes réponses sur <strong>${answeredQuestions}</strong> questions répondues
+                    </p>
+                    ${isPartialQuiz ? 
+                        `<p style="color: #6c757d; margin-top: 10px; font-size: 1em;">
+                            💡 Pour continuer, redémarrez le questionnaire à la question ${answeredQuestions + 1}
+                        </p>` : ''
+                    }
                 </div>
             `;
+        }
+
+        // Nouvelle fonction pour arrêter le quiz en cours
+        function stopQuiz() {
+            const answeredCount = userAnswers.filter(answer => answer !== null).length;
+            
+            if (answeredCount === 0) {
+                if (confirm('Vous n\'avez répondu à aucune question. Voulez-vous vraiment arrêter ?')) {
+                    restart();
+                }
+                return;
+            }
+            
+            const currentQ = currentQuestionIndex + 1;
+            if (confirm(`Arrêter le questionnaire maintenant ?\n\nVous avez répondu à ${answeredCount} questions sur ${currentQ} vues.\nVotre score sera calculé sur les questions répondues.`)) {
+                showResults();
+            }
         }
 
         function restart() {
