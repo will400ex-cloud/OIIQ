@@ -448,7 +448,7 @@
             </div>
 
             <div style="text-align: center;">
-                <button class="btn" onclick="initializeQuizFromSetup()">Charger le questionnaire</button>
+                <button class="btn" onclick="loadQuestions()">Charger le questionnaire</button>
             </div>
         </div>
 
@@ -550,11 +550,6 @@
                 });
                 console.log('Thèmes mis à jour:', themes);
             }
-        }
-
-        // Fonction pour charger et initialiser depuis le setup
-        function initializeQuizFromSetup() {
-            loadQuestions();
         }
 
         // Chargement depuis CSV
@@ -803,4 +798,164 @@
             const feedbackArea = document.getElementById('feedbackArea');
             const feedbackClass = isCorrect ? 'correct' : 'incorrect';
             const feedbackTitle = isCorrect ? '✅ Correct!' : '❌ Incorrect';
-            const feedbackText = isCorrect ?
+            const feedbackText = isCorrect ? question.feedback_correct : question.feedback_incorrect;
+            
+            questionResults[currentQuestionIndex] = {
+                question: question.question,
+                userAnswer: userAnswers[currentQuestionIndex],
+                correctAnswer: question.correct_answer,
+                isCorrect: isCorrect,
+                theme: question.theme
+            };
+            
+            feedbackArea.innerHTML = `
+                <div class="feedback ${feedbackClass}">
+                    <h4>${feedbackTitle}</h4>
+                    <p>${feedbackText}</p>
+                    ${!isCorrect ? `<p><strong>Bonne réponse:</strong> ${question.correct_answer}. ${question.feedback_correct}</p>` : ''}
+                </div>
+            `;
+        }
+
+        function updateButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const finishBtn = document.getElementById('finishBtn');
+            
+            const hasAnswer = userAnswers[currentQuestionIndex] !== null;
+            
+            prevBtn.style.display = currentQuestionIndex > 0 ? 'block' : 'none';
+            
+            if (currentQuestionIndex === questions.length - 1) {
+                nextBtn.style.display = 'none';
+                finishBtn.style.display = hasAnswer ? 'block' : 'none';
+            } else {
+                nextBtn.style.display = hasAnswer ? 'block' : 'none';
+                finishBtn.style.display = 'none';
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestion();
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion();
+            }
+        }
+
+        function showResults() {
+            // Calcul des résultats
+            let correctAnswers = 0;
+            
+            questionResults.forEach((result, index) => {
+                if (correctionMode === 'final' && !result) {
+                    const question = questions[index];
+                    const userAnswer = userAnswers[index];
+                    const isCorrect = userAnswer === question.correct_answer;
+                    
+                    questionResults[index] = {
+                        question: question.question,
+                        userAnswer: userAnswer,
+                        correctAnswer: question.correct_answer,
+                        isCorrect: isCorrect,
+                        theme: question.theme
+                    };
+                }
+                
+                if (questionResults[index].isCorrect) correctAnswers++;
+            });
+            
+            const percentage = Math.round((correctAnswers / questions.length) * 100);
+            
+            // Affichage
+            document.getElementById('quizPanel').classList.add('hidden');
+            document.getElementById('resultsPanel').classList.remove('hidden');
+            
+            let grade = 'À améliorer';
+            if (percentage >= 90) grade = 'Excellent';
+            else if (percentage >= 80) grade = 'Très bien';
+            else if (percentage >= 70) grade = 'Bien';
+            else if (percentage >= 60) grade = 'Passable';
+            
+            document.getElementById('resultsContent').innerHTML = `
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div style="display: inline-block; padding: 30px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border-radius: 20px; margin: 10px;">
+                        <h3 style="font-size: 3em; margin-bottom: 10px;">${percentage}%</h3>
+                        <p>Score final</p>
+                    </div>
+                    <div style="display: inline-block; padding: 30px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border-radius: 20px; margin: 10px;">
+                        <h3 style="font-size: 2em; margin-bottom: 10px;">${grade}</h3>
+                        <p>Appréciation</p>
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <p style="font-size: 1.2em;"><strong>${correctAnswers}</strong> bonnes réponses sur <strong>${questions.length}</strong> questions</p>
+                </div>
+            `;
+        }
+
+        function restart() {
+            location.reload();
+        }
+
+        // Gestion des raccourcis clavier
+        document.addEventListener('keydown', function(event) {
+            if (document.getElementById('quizPanel').classList.contains('hidden')) return;
+            
+            switch(event.key) {
+                case 'ArrowLeft':
+                    if (currentQuestionIndex > 0) previousQuestion();
+                    break;
+                case 'ArrowRight':
+                    if (userAnswers[currentQuestionIndex] !== null) {
+                        if (currentQuestionIndex < questions.length - 1) {
+                            nextQuestion();
+                        } else {
+                            showResults();
+                        }
+                    }
+                    break;
+                case '1':
+                case 'a':
+                case 'A':
+                    selectAnswer('A');
+                    break;
+                case '2':
+                case 'b':
+                case 'B':
+                    selectAnswer('B');
+                    break;
+                case '3':
+                case 'c':
+                case 'C':
+                    selectAnswer('C');
+                    break;
+                case '4':
+                case 'd':
+                case 'D':
+                    selectAnswer('D');
+                    break;
+            }
+        });
+
+        function selectAnswer(value) {
+            const option = document.getElementById(`option${value}`);
+            if (option && !option.disabled) {
+                option.checked = true;
+                option.dispatchEvent(new Event('change'));
+            }
+        }
+
+        // Test au chargement
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page chargée, script prêt!');
+        });
+    </script>
+</body>
+</html>
